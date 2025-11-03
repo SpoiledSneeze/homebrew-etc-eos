@@ -1,11 +1,11 @@
 cask "etc-eos-nomad" do
-  version "3.3.2"
-  sha256 :no_check
+  version "3.3.2.36"
+  sha256 "707c7bd6e8cc41cb80092cfca1a728b63ce864356905576662adcab92ba29a32"
 
-  url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737519744"
+  url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737519744&v=#{version}"
   name "ETC Eos Family (ETCnomad)"
   desc "Lighting control software for theatrical and architectural applications"
-  homepage "https://www.etcconnect.com/Eos-Software/"
+  homepage "https://www.etcconnect.com/Products/Consoles/Eos-Family/ETCnomad-ETCnomad-Puck/"
 
   livecheck do
     url "https://www.etcconnect.com/Eos-Software/"
@@ -17,7 +17,7 @@ cask "etc-eos-nomad" do
         Eos\s+ETCnomad\s+Mac\s+Software\s+v                 # Match text
         (\d+\.\d+\.\d+)                                    # Capture Version
       }xi)
-      
+
       if match
         # Return just the version - Homebrew will use this to detect updates
         # The URL with asset ID is in match[1] if needed for manual updates
@@ -26,10 +26,7 @@ cask "etc-eos-nomad" do
     end
   end
 
-  # build number is hardcoded since it is impossible to retrieve via live check. 
-  # however, https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=XXXX returns a direct download link 
-  # of a .pkg that contains the build number.
-  pkg "ETCnomad Eos Mac #{version}.36.pkg"
+  pkg "ETCnomad Eos Mac #{version}.pkg"
 
   uninstall pkgutil: [
     "com.etc.eos.family.*",
