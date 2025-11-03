@@ -38,8 +38,9 @@ jobs:
           # Save output to file
           echo "$OUTPUT" > livecheck-output.txt
           
-          # Check if any updates were found
-          if echo "$OUTPUT" | grep -q "==>"; then
+          # Check if any updates were found, looking for the specific livecheck pattern
+          # This avoids matching gem installation logs (e.g., "==> Installing 'bundler' gem")
+          if echo "$OUTPUT" | grep -E -q "[a-z0-9-]+ \(.+\) ==> .+"; then
             echo "updates_found=true" >> $GITHUB_OUTPUT
           else
             echo "updates_found=false" >> $GITHUB_OUTPUT
@@ -179,10 +180,11 @@ jobs:
               console.log('Could not load update details:', e);
             }
             
-            const updates = [];
             const lines = output.split('\n');
+            const regex = /[a-z0-9-]+ \(.+\) ==> .+/;
+            
             for (const line of lines) {
-              if (line.includes('==>')) {
+              if (regex.test(line)) {
                 updates.push(line);
               }
             }
