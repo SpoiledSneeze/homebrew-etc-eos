@@ -10,7 +10,10 @@ cask "etc-eos-nomad" do
   livecheck do
     url "https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions"
     strategy :page_match do |page|
-      page.scan(/(\d+\.\d+\.\d+)/).flatten.select { |v| v.start_with?("3.") }.first
+      versions = page.scan(/\b(\d+\.\d+\.\d+)\b/).flatten.uniq
+      versions.select { |v| v.start_with?("3.") }
+             .sort_by { |v| v.split(".").map(&:to_i) }
+             .last
     end
   end
 
