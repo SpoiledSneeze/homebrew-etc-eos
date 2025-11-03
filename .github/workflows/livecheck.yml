@@ -319,7 +319,7 @@ ${output}
 *Scraped URLs: ${updateDetails.filter(d => d.url !== 'NOT_FOUND').length} of ${updateDetails.length} found*
 
 *Checksums: ${updateDetails.filter(d => d.sha256 && d.sha256 !== 'PENDING' && d.sha256 !== 'NOT_FOUND' && d.sha256 !== 'DOWNLOAD_FAILED').length} of ${updateDetails.length} calculated*
-`;
+            `;
             
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
