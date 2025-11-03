@@ -3,7 +3,6 @@ cask "etc-eos-nomad" do
   sha256 :no_check # ETC doesn't provide checksums; verify manually after download
 
   url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737506112",
-      verified: "etcconnect.com/"
   name "ETC Eos Family (ETCnomad)"
   desc "Lighting control software for theatrical and architectural applications"
   homepage "https://www.etcconnect.com/Products/Consoles/Eos-Family/ETCnomad-ETCnomad-Puck/"
