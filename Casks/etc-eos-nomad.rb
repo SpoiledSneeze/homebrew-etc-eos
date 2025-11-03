@@ -8,12 +8,17 @@ cask "etc-eos-nomad" do
   homepage "https://www.etcconnect.com/Products/Consoles/Eos-Family/ETCnomad-ETCnomad-Puck/"
 
   livecheck do
-    url "https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions"
+    url "https://www.etcconnect.com/Eos-Software/"
     strategy :page_match do |page|
-      versions = page.scan(/\b(\d+\.\d+\.\d+)\b/).flatten.uniq
-      versions.select { |v| v.start_with?("3.") }
-             .sort_by { |v| v.split(".").map(&:to_i) }
-             .last
+      # Extract version and download URL from Mac software link
+      # Pattern: <a href="/WorkArea/DownloadAsset.aspx?id=XXXXX">Eos ETCnomad Mac Software v3.3.2</a>
+      match = page.match(%r{href="(/WorkArea/DownloadAsset\.aspx\?id=\d+)"[^>]*>Eos\s+ETCnomad\s+Mac\s+Software\s+v(\d+\.\d+\.\d+)}i)
+      
+      if match
+        # Return just the version - Homebrew will use this to detect updates
+        # The URL with asset ID is in match[1] if needed for manual updates
+        match[2]
+      end
     end
   end
 
