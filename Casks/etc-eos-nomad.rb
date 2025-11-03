@@ -22,6 +22,9 @@ cask "etc-eos-nomad" do
     end
   end
 
+  # build number is hardcoded since it is impossible to retrieve via live check. 
+  # however, https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=XXXX returns a direct download link 
+  # of a .pkg that contains the build number.
   pkg "ETCnomad Eos Mac #{version}.36.pkg"
 
   uninstall pkgutil: [
