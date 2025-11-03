@@ -22,7 +22,7 @@ cask "etc-eos-nomad" do
     end
   end
 
-  pkg "ETCnomad_Eos_Mac_v#{version}.pkg"
+  pkg "ETCnomad Eos Mac #{version}.pkg"
 
   uninstall pkgutil: [
     "com.etcconnect.pkg.ETCnomadEosMac",
