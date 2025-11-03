@@ -1,5 +1,5 @@
 cask "etc-eos-nomad" do
-  version "3.3.2"
+  version "3.3.2.36"
   sha256 :no_check
 
   url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737519744"
@@ -42,7 +42,7 @@ cask "etc-eos-nomad" do
       ETCnomad requires a USB hardware key (dongle) to function beyond demo mode.
 
       After installation, launch the application from:
-        /Applications/Eos Family/Eos Configuration Utility
+        /Applications/Eos Family Welcome Screen.app
 
       Documentation and keyboard shortcuts can be found at:
         ~/Documents/ETC/Eos Family Documents/
