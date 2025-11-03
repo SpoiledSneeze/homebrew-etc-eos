@@ -26,19 +26,21 @@ cask "etc-eos-nomad" do
     "~/Library/Saved Application State/com.etc.eos.*",
   ]
 
-  caveats <<~EOS
-    ETCnomad requires a USB hardware key (dongle) to function beyond demo mode.
-    
-    After installation, launch the application from:
-      /Applications/Eos Family/Eos Configuration Utility
-    
-    Documentation and keyboard shortcuts can be found at:
-      ~/Documents/ETC/Eos Family Documents/
-    
-    For the latest version information and downloads, visit:
-      https://www.etcconnect.com/eos-software/
-    
-    Note: This cask installs Eos v3.x series. For legacy v2.9 support
-    (required for older XP-based consoles), see 'etc-eos-nomad@2.9'
-  EOS
+  caveats do
+    <<~EOS
+      ETCnomad requires a USB hardware key (dongle) to function beyond demo mode.
+      
+      After installation, launch the application from:
+        /Applications/Eos Family/Eos Configuration Utility
+      
+      Documentation and keyboard shortcuts can be found at:
+        ~/Documents/ETC/Eos Family Documents/
+      
+      For the latest version information and downloads, visit:
+        https://www.etcconnect.com/eos-software/
+      
+      Note: This cask installs Eos v3.x series. For legacy v2.9 support
+      (required for older XP-based consoles), see 'etc-eos-nomad@2.9'
+    EOS
+  end
 end
