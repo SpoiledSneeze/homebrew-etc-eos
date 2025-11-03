@@ -1,0 +1,29 @@
+name: Close Stale Update Issues
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  close-stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    
+    steps:
+      - name: Close stale update issues
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          only-labels: 'automated,updates-available'
+          stale-issue-message: |
+            This update notification is being closed as stale. 
+            If the updates have been applied, this is expected behavior.
+            If new updates are detected, a new issue will be created automatically.
+          close-issue-message: 'Closing stale update notification.'
+          days-before-stale: 30
+          days-before-close: 7
+          stale-issue-label: 'stale'
+          exempt-issue-labels: 'pinned'

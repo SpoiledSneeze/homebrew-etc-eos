@@ -1,0 +1,358 @@
+name: Check for Updates
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual triggers
+  push:
+    paths:
+      - 'Casks/**'
+      - '.github/workflows/livecheck.yml'
+
+jobs:
+  livecheck:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      issues: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      
+      - name: Tap this repository
+        run: |
+          brew tap ${{ github.repository }}
+      
+      - name: Run livecheck
+        id: livecheck
+        run: |
+          echo "Running livecheck for all casks..."
+          OUTPUT=$(brew livecheck --tap=${{ github.repository }} --newer-only --verbose 2>&1 || true)
+          echo "$OUTPUT"
+          
+          # Save output to file
+          echo "$OUTPUT" > livecheck-output.txt
+          
+          # Check if any updates were found
+          if echo "$OUTPUT" | grep -q "==>"; then
+            echo "updates_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "updates_found=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Scrape download URLs for updates
+        id: scrape-urls
+        if: steps.livecheck.outputs.updates_found == 'true'
+        run: |
+          brew install jq curl
+          
+          # Create a JSON file to store update details
+          echo "[]" > update-details.json
+          
+          # Parse livecheck output to find updated casks
+          while IFS= read -r line; do
+            if echo "$line" | grep -q "etc-eos-nomad"; then
+              # Extract the new version from livecheck output
+              NEW_VERSION=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+              
+              if [ ! -z "$NEW_VERSION" ]; then
+                echo "Found new version: $NEW_VERSION"
+                echo "Scraping download URL for version $NEW_VERSION..."
+                
+                # Fetch the ETC software versions page
+                PAGE_CONTENT=$(curl -s "https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions")
+                
+                # Extract the asset ID for Mac download
+                ASSET_ID=$(echo "$PAGE_CONTENT" | \
+                  grep -A 50 "<td[^>]*>$NEW_VERSION</td>" | \
+                  grep -oE 'DownloadAsset\.aspx\?id=[0-9]+' | \
+                  grep -v "10737" | \
+                  head -1 | \
+                  grep -oE '[0-9]+$')
+                
+                # Alternative: try to find Mac-specific download
+                if [ -z "$ASSET_ID" ]; then
+                  ASSET_ID=$(echo "$PAGE_CONTENT" | \
+                    grep -A 100 "<td[^>]*>$NEW_VERSION</td>" | \
+                    grep -i "mac" | \
+                    grep -oE 'DownloadAsset\.aspx\?id=[0-9]+' | \
+                    head -1 | \
+                    grep -oE '[0-9]+$')
+                fi
+                
+                if [ ! -z "$ASSET_ID" ]; then
+                  DOWNLOAD_URL="https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=$ASSET_ID"
+                  echo "Found download URL: $DOWNLOAD_URL"
+                  
+                  # Store the details in JSON (without checksum for now)
+                  jq --arg cask "etc-eos-nomad" \
+                     --arg version "$NEW_VERSION" \
+                     --arg url "$DOWNLOAD_URL" \
+                     --arg asset_id "$ASSET_ID" \
+                     '. += [{cask: $cask, version: $version, url: $url, asset_id: $asset_id, sha256: "PENDING"}]' \
+                     update-details.json > temp.json && mv temp.json update-details.json
+                else
+                  echo "Warning: Could not find asset ID for version $NEW_VERSION"
+                  
+                  # Store without URL
+                  jq --arg cask "etc-eos-nomad" \
+                     --arg version "$NEW_VERSION" \
+                     '. += [{cask: $cask, version: $version, url: "NOT_FOUND", asset_id: "NOT_FOUND", sha256: "NOT_FOUND"}]' \
+                     update-details.json > temp.json && mv temp.json update-details.json
+                fi
+              fi
+            fi
+          done < livecheck-output.txt
+          
+          # Output the results
+          echo "Update details:"
+          cat update-details.json
+          
+          # Check if we found any URLs
+          if jq -e '.[] | select(.url != "NOT_FOUND")' update-details.json > /dev/null 2>&1; then
+            echo "urls_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "urls_found=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Calculate SHA256 checksums
+        id: calculate-checksums
+        if: steps.scrape-urls.outputs.urls_found == 'true'
+        run: |
+          echo "Downloading files and calculating checksums..."
+          mkdir -p downloads
+          
+          # Read the update details and download each file
+          jq -c '.[]' update-details.json | while read -r item; do
+            CASK=$(echo "$item" | jq -r '.cask')
+            VERSION=$(echo "$item" | jq -r '.version')
+            URL=$(echo "$item" | jq -r '.url')
+            
+            if [ "$URL" != "NOT_FOUND" ]; then
+              echo "Downloading $CASK version $VERSION..."
+              
+              # Download the file with a timeout
+              FILENAME="downloads/${CASK}_${VERSION}.pkg"
+              
+              if curl -L -o "$FILENAME" --max-time 600 "$URL"; then
+                echo "Download complete, calculating SHA256..."
+                SHA256=$(shasum -a 256 "$FILENAME" | awk '{print $1}')
+                echo "SHA256: $SHA256"
+                
+                # Update the JSON with the checksum
+                jq --arg cask "$CASK" --arg sha "$SHA256" \
+                   '(.[] | select(.cask == $cask) | .sha256) = $sha' \
+                   update-details.json > temp.json && mv temp.json update-details.json
+                
+                # Clean up the downloaded file to save space
+                rm "$FILENAME"
+              else
+                echo "Failed to download $CASK"
+                jq --arg cask "$CASK" \
+                   '(.[] | select(.cask == $cask) | .sha256) = "DOWNLOAD_FAILED"' \
+                   update-details.json > temp.json && mv temp.json update-details.json
+              fi
+            fi
+          done
+          
+          echo "Final update details with checksums:"
+          cat update-details.json
+      
+      - name: Create or update issue for updates
+        if: steps.livecheck.outputs.updates_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('livecheck-output.txt', 'utf8');
+            
+            let updateDetails = [];
+            try {
+              const detailsContent = fs.readFileSync('update-details.json', 'utf8');
+              updateDetails = JSON.parse(detailsContent);
+            } catch (e) {
+              console.log('Could not load update details:', e);
+            }
+            
+            const updates = [];
+            const lines = output.split('\n');
+            for (const line of lines) {
+              if (line.includes('==>')) {
+                updates.push(line);
+              }
+            }
+            
+            let updateInstructions = '';
+            for (const detail of updateDetails) {
+              updateInstructions += `
+### 📦 ${detail.cask}
+
+**New Version:** \`${detail.version}\`
+`;
+              
+              if (detail.url !== 'NOT_FOUND') {
+                updateInstructions += `**Download URL:** \`${detail.url}\`
+**Asset ID:** \`${detail.asset_id}\`
+`;
+                
+                if (detail.sha256 && detail.sha256 !== 'PENDING' && detail.sha256 !== 'DOWNLOAD_FAILED') {
+                  updateInstructions += `**SHA256:** \`${detail.sha256}\`
+
+#### Quick Update Commands:
+\`\`\`bash
+# Edit the cask file
+code Casks/${detail.cask}.rb
+
+# Update these lines:
+version "${detail.version}"
+sha256 "${detail.sha256}"
+
+url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=${detail.asset_id}",
+    verified: "etcconnect.com/"
+
+# Test the cask
+brew audit --cask --online Casks/${detail.cask}.rb
+brew install --cask --dry-run Casks/${detail.cask}.rb
+\`\`\`
+`;
+                } else if (detail.sha256 === 'DOWNLOAD_FAILED') {
+                  updateInstructions += `
+⚠️ **Checksum calculation failed** - file download timed out or failed.
+
+#### Manual Checksum Calculation:
+\`\`\`bash
+# Download the file manually
+curl -L -o installer.pkg "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=${detail.asset_id}"
+
+# Calculate SHA256
+shasum -a 256 installer.pkg
+
+# Then update the cask with the checksum
+\`\`\`
+`;
+                } else {
+                  updateInstructions += `
+⏳ **Checksum calculation in progress...**
+
+The workflow is downloading the file to calculate the SHA256. Check back in a few minutes.
+`;
+                }
+              } else {
+                updateInstructions += `
+⚠️ **Could not automatically find download URL**
+
+Please manually check: https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions
+
+Look for version ${detail.version} and find the Mac download link.
+`;
+              }
+              
+              updateInstructions += `
+#### Manual Verification Steps:
+1. Visit the [ETC Software Versions page](https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions)
+2. Confirm version ${detail.version} is available
+3. Download and verify the installer works
+4. Update the cask and test locally
+5. Push changes
+
+---
+`;
+            }
+            
+            const issueTitle = '🔔 New versions available';
+            const checksumStatus = updateDetails.some(d => d.sha256 && d.sha256 !== 'PENDING' && d.sha256 !== 'NOT_FOUND' && d.sha256 !== 'DOWNLOAD_FAILED') 
+              ? '✅ Checksums calculated' 
+              : updateDetails.some(d => d.sha256 === 'DOWNLOAD_FAILED')
+              ? '⚠️ Some checksums failed'
+              : '⏳ Checksums pending';
+            
+            const issueBody = `## Updates Detected
+
+The following casks have new versions available:
+
+\`\`\`
+${updates.join('\n')}
+\`\`\`
+
+**Status:** ${checksumStatus}
+
+## Update Details & Instructions
+
+${updateInstructions}
+
+### Complete Workflow
+
+\`\`\`bash
+# 1. Update the cask file with new version, URL, and SHA256
+# 2. Test locally
+brew audit --cask --online Casks/etc-eos-nomad.rb
+brew install --cask --dry-run Casks/etc-eos-nomad.rb
+brew livecheck --cask Casks/etc-eos-nomad.rb
+
+# 3. Commit and push
+git add Casks/
+git commit -m "Update etc-eos-nomad to ${updateDetails[0]?.version || 'latest'}"
+git push
+
+# 4. Close this issue
+\`\`\`
+
+### Full Livecheck Output
+
+<details>
+<summary>Click to expand</summary>
+
+\`\`\`
+${output}
+\`\`\`
+
+</details>
+
+---
+*This issue was automatically created by the livecheck workflow on ${new Date().toISOString().split('T')[0]}*
+
+*Scraped URLs: ${updateDetails.filter(d => d.url !== 'NOT_FOUND').length} of ${updateDetails.length} found*
+
+*Checksums: ${updateDetails.filter(d => d.sha256 && d.sha256 !== 'PENDING' && d.sha256 !== 'NOT_FOUND' && d.sha256 !== 'DOWNLOAD_FAILED').length} of ${updateDetails.length} calculated*
+`;
+            
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['automated', 'updates-available'],
+              state: 'open'
+            });
+            
+            if (issues.data.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: issueBody
+              });
+              console.log(`Updated existing issue #${issues.data[0].number}`);
+            } else {
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['automated', 'updates-available']
+              });
+              console.log(`Created new issue #${issue.data.number}`);
+            }
+      
+      - name: Upload update details
+        if: steps.livecheck.outputs.updates_found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-details
+          path: |
+            livecheck-output.txt
+            update-details.json
+          retention-days: 30

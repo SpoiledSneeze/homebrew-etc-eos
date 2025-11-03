@@ -1,0 +1,66 @@
+name: Test Casks
+
+on:
+  push:
+    paths:
+      - 'Casks/**'
+  pull_request:
+    paths:
+      - 'Casks/**'
+
+jobs:
+  test:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      
+      - name: Tap this repository
+        run: |
+          brew tap ${{ github.repository }}
+      
+      - name: Get changed casks
+        id: changed-casks
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_CASKS=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep "^Casks/" | sed 's|Casks/||' || true)
+          else
+            CHANGED_CASKS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^Casks/" | sed 's|Casks/||' || true)
+          fi
+          
+          if [ -z "$CHANGED_CASKS" ]; then
+            echo "No casks changed"
+            echo "casks=" >> $GITHUB_OUTPUT
+          else
+            echo "Changed casks: $CHANGED_CASKS"
+            echo "casks=$CHANGED_CASKS" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Audit changed casks
+        if: steps.changed-casks.outputs.casks != ''
+        run: |
+          for cask in ${{ steps.changed-casks.outputs.casks }}; do
+            echo "Auditing Casks/$cask"
+            brew audit --cask --online "Casks/$cask" || exit 1
+          done
+      
+      - name: Style check changed casks
+        if: steps.changed-casks.outputs.casks != ''
+        run: |
+          for cask in ${{ steps.changed-casks.outputs.casks }}; do
+            echo "Style checking Casks/$cask"
+            brew style --fix "Casks/$cask" || exit 1
+          done
+      
+      - name: Test installation (dry run)
+        if: steps.changed-casks.outputs.casks != ''
+        run: |
+          for cask in ${{ steps.changed-casks.outputs.casks }}; do
+            cask_name=${cask%.rb}
+            echo "Testing installation of $cask_name"
+            brew install --cask --dry-run "Casks/$cask" || exit 1
+          done
