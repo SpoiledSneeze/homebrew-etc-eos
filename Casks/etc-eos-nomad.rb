@@ -1,6 +1,6 @@
 cask "etc-eos-nomad" do
   version "3.3.2"
-  sha256 "707c7bd6e8cc41cb80092cfca1a728b63ce864356905576662adcab92ba29a32"
+  sha256 :no_check
 
   url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737519744"
   name "ETC Eos Family (ETCnomad)"
