@@ -1,11 +1,11 @@
 cask "etc-eos-nomad" do
-  version "3.3.2.36"
+  version "3.3.2"
   sha256 "707c7bd6e8cc41cb80092cfca1a728b63ce864356905576662adcab92ba29a32"
 
   url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737519744"
   name "ETC Eos Family (ETCnomad)"
   desc "Lighting control software for theatrical and architectural applications"
-  homepage "https://www.etcconnect.com/Products/Consoles/Eos-Family/ETCnomad-ETCnomad-Puck/"
+  homepage "https://www.etcconnect.com/Eos-Software/"
 
   livecheck do
     url "https://www.etcconnect.com/Eos-Software/"
@@ -22,7 +22,7 @@ cask "etc-eos-nomad" do
     end
   end
 
-  pkg "ETCnomad Eos Mac #{version}.pkg"
+  pkg "ETCnomad Eos Mac #{version}.36.pkg"
 
   uninstall pkgutil: [
     "com.etcconnect.pkg.ETCnomadEosMac",
