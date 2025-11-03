@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'Casks/**'
+  workflow_dispatch: # Allow manual triggers
   pull_request:
     paths:
       - 'Casks/**'
