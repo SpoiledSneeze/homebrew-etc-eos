@@ -12,7 +12,11 @@ cask "etc-eos-nomad" do
     strategy :page_match do |page|
       # Extract version and download URL from Mac software link
       # Pattern: <a href="/WorkArea/DownloadAsset.aspx?id=XXXXX">Eos ETCnomad Mac Software v3.3.2</a>
-      match = page.match(%r{href="(/WorkArea/DownloadAsset\.aspx\?id=\d+)"[^>]*>Eos\s+ETCnomad\s+Mac\s+Software\s+v(\d+\.\d+\.\d+)}i)
+      match = page.match(%r{
+        href="(/WorkArea/DownloadAsset\.aspx\?id=\d+)"[^>]*> # Capture Asset ID
+        Eos\s+ETCnomad\s+Mac\s+Software\s+v                 # Match text
+        (\d+\.\d+\.\d+)                                    # Capture Version
+      }xi)
       
       if match
         # Return just the version - Homebrew will use this to detect updates
@@ -28,9 +32,9 @@ cask "etc-eos-nomad" do
   pkg "ETCnomad Eos Mac #{version}.36.pkg"
 
   uninstall pkgutil: [
+    "com.etc.eos.family.*",
     "com.etcconnect.pkg.ETCnomadEosMac",
     "com.etcconnect.pkg.EosFamilyDocuments",
-    "com.etc.eos.family.*",
   ]
 
   zap trash: [
