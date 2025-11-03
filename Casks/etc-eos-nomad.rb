@@ -9,17 +9,7 @@ cask "etc-eos-nomad" do
 
   livecheck do
     url "https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions"
-    strategy :page_match do |page|
-      # Find all version entries in the table (format: <td>X.Y.Z</td>)
-      # Filter to only 3.x versions (exclude 2.x legacy versions)
-      versions = page.scan(%r{<td[^>]*>(\d+\.\d+\.\d+)</td>}i)
-                     .map { |match| match[0] }
-                     .select { |v| v.start_with?("3.") }
-      
-      # Return the first (newest) version found
-      versions.first
-    end
-  end
+    regex(/^(\d+\.\d+\.\d+)\s*\|/)
 
   pkg "ETCnomad_Eos_Mac_v#{version}.pkg"
 
