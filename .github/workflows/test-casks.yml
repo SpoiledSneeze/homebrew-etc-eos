@@ -44,16 +44,17 @@ jobs:
         if: steps.changed-casks.outputs.casks != ''
         run: |
           for cask in ${{ steps.changed-casks.outputs.casks }}; do
-            echo "Auditing Casks/$cask"
-            brew audit --cask --online "Casks/$cask" || exit 1
+            cask_name=${cask%.rb}
+            echo "Auditing $cask_name"
+            brew audit --cask --online "$cask_name" || exit 1
           done
       
       - name: Style check changed casks
         if: steps.changed-casks.outputs.casks != ''
         run: |
           for cask in ${{ steps.changed-casks.outputs.casks }}; do
-            echo "Style checking Casks/$cask"
-            brew style --fix "Casks/$cask" || exit 1
+            echo "Style checking $cask_name"
+            brew style --fix "$cask_name" || exit 1
           done
       
       - name: Test installation (dry run)
@@ -62,5 +63,5 @@ jobs:
           for cask in ${{ steps.changed-casks.outputs.casks }}; do
             cask_name=${cask%.rb}
             echo "Testing installation of $cask_name"
-            brew install --cask --dry-run "Casks/$cask" || exit 1
+            brew install --cask --dry-run "$cask_name" || exit 1
           done
