@@ -9,7 +9,9 @@ cask "etc-eos-nomad" do
 
   livecheck do
     url "https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions"
-    regex(/^(\d+\.\d+\.\d+)\s*\|/)
+    strategy :page_match do |page|
+      page.scan(/(\d+\.\d+\.\d+)/).flatten.select { |v| v.start_with?("3.") }.first
+    end
   end
 
   pkg "ETCnomad_Eos_Mac_v#{version}.pkg"
