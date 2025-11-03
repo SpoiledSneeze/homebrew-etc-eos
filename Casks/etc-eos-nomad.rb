@@ -1,8 +1,8 @@
 cask "etc-eos-nomad" do
-  version "3.2.12"
+  version "3.3.2"
   sha256 :no_check
 
-  url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737506112"
+  url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=10737519744"
   name "ETC Eos Family (ETCnomad)"
   desc "Lighting control software for theatrical and architectural applications"
   homepage "https://www.etcconnect.com/Products/Consoles/Eos-Family/ETCnomad-ETCnomad-Puck/"
