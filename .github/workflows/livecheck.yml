@@ -189,79 +189,79 @@ jobs:
             
             let updateInstructions = '';
             for (const detail of updateDetails) {
-              updateInstructions += `
-### 📦 ${detail.cask}
+              updateInstructions += `            
+              ### 📦 ${detail.cask}
 
-**New Version:** \`${detail.version}\`
-`;
-              
-              if (detail.url !== 'NOT_FOUND') {
-                updateInstructions += `**Download URL:** \`${detail.url}\`
-**Asset ID:** \`${detail.asset_id}\`
-`;
-                
-                if (detail.sha256 && detail.sha256 !== 'PENDING' && detail.sha256 !== 'DOWNLOAD_FAILED') {
-                  updateInstructions += `**SHA256:** \`${detail.sha256}\`
+              **New Version:** \`${detail.version}\`
+              `;
+                            
+                            if (detail.url !== 'NOT_FOUND') {
+                              updateInstructions += `**Download URL:** \`${detail.url}\`
+              **Asset ID:** \`${detail.asset_id}\`
+              `;
+                              
+                              if (detail.sha256 && detail.sha256 !== 'PENDING' && detail.sha256 !== 'DOWNLOAD_FAILED') {
+                                updateInstructions += `**SHA256:** \`${detail.sha256}\`
 
-#### Quick Update Commands:
-\`\`\`bash
-# Edit the cask file
-code Casks/${detail.cask}.rb
+              #### Quick Update Commands:
+              \`\`\`bash
+              # Edit the cask file
+              code Casks/${detail.cask}.rb
 
-# Update these lines:
-version "${detail.version}"
-sha256 "${detail.sha256}"
+              # Update these lines:
+              version "${detail.version}"
+              sha256 "${detail.sha256}"
 
-url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=${detail.asset_id}",
-    verified: "etcconnect.com/"
+              url "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=${detail.asset_id}",
+                  verified: "etcconnect.com/"
 
-# Test the cask
-brew audit --cask --online Casks/${detail.cask}.rb
-brew install --cask --dry-run Casks/${detail.cask}.rb
-\`\`\`
-`;
-                } else if (detail.sha256 === 'DOWNLOAD_FAILED') {
-                  updateInstructions += `
-⚠️ **Checksum calculation failed** - file download timed out or failed.
+              # Test the cask
+              brew audit --cask --online Casks/${detail.cask}.rb
+              brew install --cask --dry-run Casks/${detail.cask}.rb
+              \`\`\`
+              `;
+                              } else if (detail.sha256 === 'DOWNLOAD_FAILED') {
+                                updateInstructions += `
+              ⚠️ **Checksum calculation failed** - file download timed out or failed.
 
-#### Manual Checksum Calculation:
-\`\`\`bash
-# Download the file manually
-curl -L -o installer.pkg "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=${detail.asset_id}"
+              #### Manual Checksum Calculation:
+              \`\`\`bash
+              # Download the file manually
+              curl -L -o installer.pkg "https://www.etcconnect.com/WorkArea/DownloadAsset.aspx?id=${detail.asset_id}"
 
-# Calculate SHA256
-shasum -a 256 installer.pkg
+              # Calculate SHA256
+              shasum -a 256 installer.pkg
 
-# Then update the cask with the checksum
-\`\`\`
-`;
-                } else {
-                  updateInstructions += `
-⏳ **Checksum calculation in progress...**
+              # Then update the cask with the checksum
+              \`\`\`
+              `;
+                              } else {
+                                updateInstructions += `
+              ⏳ **Checksum calculation in progress...**
 
-The workflow is downloading the file to calculate the SHA256. Check back in a few minutes.
-`;
-                }
-              } else {
-                updateInstructions += `
-⚠️ **Could not automatically find download URL**
+              The workflow is downloading the file to calculate the SHA256. Check back in a few minutes.
+              `;
+                              }
+                            } else {
+                              updateInstructions += `
+              ⚠️ **Could not automatically find download URL**
 
-Please manually check: https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions
+              Please manually check: https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions
 
-Look for version ${detail.version} and find the Mac download link.
-`;
-              }
-              
-              updateInstructions += `
-#### Manual Verification Steps:
-1. Visit the [ETC Software Versions page](https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions)
-2. Confirm version ${detail.version} is available
-3. Download and verify the installer works
-4. Update the cask and test locally
-5. Push changes
+              Look for version ${detail.version} and find the Mac download link.
+              `;
+                            }
+                            
+                            updateInstructions += `
+              #### Manual Verification Steps:
+              1. Visit the [ETC Software Versions page](https://support.etcconnect.com/ETC/Consoles/Eos_Family/Software_and_Programming/All_Eos_Family_Software_Versions)
+              2. Confirm version ${detail.version} is available
+              3. Download and verify the installer works
+              4. Update the cask and test locally
+              5. Push changes
 
----
-`;
+              ---
+              `;
             }
             
             const issueTitle = '🔔 New versions available';
@@ -273,52 +273,52 @@ Look for version ${detail.version} and find the Mac download link.
             
             const issueBody = `## Updates Detected
 
-The following casks have new versions available:
+            The following casks have new versions available:
 
-\`\`\`
-${updates.join('\n')}
-\`\`\`
+            \`\`\`
+            ${updates.join('\n')}
+            \`\`\`
 
-**Status:** ${checksumStatus}
+            **Status:** ${checksumStatus}
 
-## Update Details & Instructions
+            ## Update Details & Instructions
 
-${updateInstructions}
+            ${updateInstructions}
 
-### Complete Workflow
+            ### Complete Workflow
 
-\`\`\`bash
-# 1. Update the cask file with new version, URL, and SHA256
-# 2. Test locally
-brew audit --cask --online Casks/etc-eos-nomad.rb
-brew install --cask --dry-run Casks/etc-eos-nomad.rb
-brew livecheck --cask Casks/etc-eos-nomad.rb
+            \`\`\`bash
+            # 1. Update the cask file with new version, URL, and SHA256
+            # 2. Test locally
+            brew audit --cask --online Casks/etc-eos-nomad.rb
+            brew install --cask --dry-run Casks/etc-eos-nomad.rb
+            brew livecheck --cask Casks/etc-eos-nomad.rb
 
-# 3. Commit and push
-git add Casks/
-git commit -m "Update etc-eos-nomad to ${updateDetails[0]?.version || 'latest'}"
-git push
+            # 3. Commit and push
+            git add Casks/
+            git commit -m "Update etc-eos-nomad to ${updateDetails[0]?.version || 'latest'}"
+            git push
 
-# 4. Close this issue
-\`\`\`
+            # 4. Close this issue
+            \`\`\`
 
-### Full Livecheck Output
+            ### Full Livecheck Output
 
-<details>
-<summary>Click to expand</summary>
+            <details>
+            <summary>Click to expand</summary>
 
-\`\`\`
-${output}
-\`\`\`
+            \`\`\`
+            ${output}
+            \`\`\`
 
-</details>
+            </details>
 
----
-*This issue was automatically created by the livecheck workflow on ${new Date().toISOString().split('T')[0]}*
+            ---
+            *This issue was automatically created by the livecheck workflow on ${new Date().toISOString().split('T')[0]}*
 
-*Scraped URLs: ${updateDetails.filter(d => d.url !== 'NOT_FOUND').length} of ${updateDetails.length} found*
+            *Scraped URLs: ${updateDetails.filter(d => d.url !== 'NOT_FOUND').length} of ${updateDetails.length} found*
 
-*Checksums: ${updateDetails.filter(d => d.sha256 && d.sha256 !== 'PENDING' && d.sha256 !== 'NOT_FOUND' && d.sha256 !== 'DOWNLOAD_FAILED').length} of ${updateDetails.length} calculated*
+            *Checksums: ${updateDetails.filter(d => d.sha256 && d.sha256 !== 'PENDING' && d.sha256 !== 'NOT_FOUND' && d.sha256 !== 'DOWNLOAD_FAILED').length} of ${updateDetails.length} calculated*
             `;
             
             const issues = await github.rest.issues.listForRepo({
